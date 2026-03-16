@@ -23,6 +23,17 @@ export default function DemoWebsite({ clinic }: DemoWebsiteProps) {
   const whatsappLink = `https://wa.me/${phone.replace(/\s+/g, '')}`;
   const telLink = `tel:${phone.replace(/\s+/g, '')}`;
   
+  const getHeroImage = () => {
+    if (!clinic.category) return DENTAL_STOCK_IMAGES.hero[0];
+    
+    const category = clinic.category.toLowerCase();
+    if (category.includes('orthodont')) return DENTAL_STOCK_IMAGES.services.braces;
+    if (category.includes('pediatric')) return "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?q=80&w=1200&auto=format&fit=crop";
+    if (category.includes('whitening') || category.includes('cosmetic')) return DENTAL_STOCK_IMAGES.services.whitening;
+    
+    return DENTAL_STOCK_IMAGES.hero[0];
+  };
+  
   // Google Maps Embed URL without API key (using search query)
   const mapSearchQuery = encodeURIComponent(`${clinicName} ${address}`);
   const mapEmbedUrl = `https://www.google.com/maps/embed/v1/place?key=REPLACE_WITH_API_KEY&q=${mapSearchQuery}`;
@@ -197,7 +208,7 @@ export default function DemoWebsite({ clinic }: DemoWebsiteProps) {
           >
             <div className="relative z-10 rounded-[30px] md:rounded-[40px] overflow-hidden shadow-2xl shadow-blue-200 border-[8px] md:border-[12px] border-white">
               <Image 
-                src={DENTAL_STOCK_IMAGES.hero[0]} 
+                src={getHeroImage()} 
                 alt="Modern Dental Clinic" 
                 width={800} 
                 height={1000} 

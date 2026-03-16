@@ -8,7 +8,7 @@ export async function searchClinics(query: string): Promise<Partial<DentalClinic
   
   const prompt = `Search for businesses based on this query: "${query}". 
   ONLY provide businesses that DO NOT have a working website. 
-  Provide a list of up to 100 real or realistic businesses in the specified area.
+  Provide a comprehensive list of all real or realistic businesses in the specified area.
   For each business, include:
   - name
   - category (e.g., Orthodontist, Realtor, Plumber)
