@@ -1,0 +1,28 @@
+{
+  "entities": {
+    "DentalClinic": {
+      "title": "Dental Clinic",
+      "description": "Information about a dental clinic found via search.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the clinic." },
+        "category": { "type": "string", "description": "Category like Orthodontist or Dentist." },
+        "rating": { "type": "number", "description": "Average rating." },
+        "reviewsCount": { "type": "integer", "description": "Number of reviews." },
+        "phone": { "type": "string", "description": "Contact phone number." },
+        "address": { "type": "string", "description": "Physical address." },
+        "websiteUrl": { "type": "string", "description": "Official website URL." },
+        "mapEmbedUrl": { "type": "string", "description": "Google Maps iframe embed URL." },
+        "city": { "type": "string", "description": "City where the clinic is located." },
+        "createdAt": { "type": "integer", "description": "Timestamp of creation." }
+      },
+      "required": ["name", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/clinics/{clinicId}": {
+      "schema": "DentalClinic",
+      "description": "Collection of dental clinics."
+    }
+  }
+}

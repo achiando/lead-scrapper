@@ -1,0 +1,5 @@
+{
+  "name": "Dental Demo Pro",
+  "description": "Lead generation tool for dental marketing agencies. Find clinics without websites and generate professional demos.",
+  "requestFramePermissions": ["geolocation"]
+}
