@@ -75,6 +75,7 @@ async function searchGemini(query: string): Promise<Partial<DentalClinic>[]> {
   const prompt = `Search for dental clinics based on this query: "${query}". 
   ONLY provide businesses that DO NOT have a working website. 
   Provide a comprehensive list of real dental clinics in the specified area.
+  Generate at least 50 dental clinics if possible, or as many as you can find.
   For each business, include:
   - name
   - category (e.g., General Dentistry, Orthodontist, Pediatric Dentistry)
@@ -87,7 +88,7 @@ async function searchGemini(query: string): Promise<Partial<DentalClinic>[]> {
   - metaTitle (SEO friendly title, max 60 chars)
   - metaDescription (SEO friendly description, max 160 chars)
   
-  Return the data as a JSON array of objects.`;
+  Return the data as a JSON array of objects. Aim for 50+ results.`;
 
   try {
     const response = await ai.models.generateContent({

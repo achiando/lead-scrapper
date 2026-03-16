@@ -5,6 +5,7 @@ export interface DentalClinic {
   rating?: number;
   reviewsCount?: number;
   phone?: string;
+  email?: string;
   address?: string;
   websiteUrl?: string;
   mapEmbedUrl?: string;

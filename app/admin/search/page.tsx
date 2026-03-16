@@ -6,6 +6,7 @@ import { searchClinics } from '@/lib/hybrid-search';
 import { DentalClinic } from '@/lib/dental-data';
 import { db } from '@/firebase';
 import { doc, setDoc, collection, query, where, getDocs, updateDoc, QueryFieldFilterConstraint } from 'firebase/firestore';
+import { generateSlug } from '@/lib/slug-generator';
 
 export default function SearchLeadsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,6 +36,9 @@ export default function SearchLeadsPage() {
     setSaving(clinic.name || 'clinic');
     const now = new Date().valueOf();
     try {
+      // Generate slug for new clinics
+      const slug = generateSlug(clinic.name || '', clinic.city);
+      
       // Check if clinic already exists
       const q = query(collection(db, 'clinics'), where('name', '==', clinic.name));
       const querySnapshot = await getDocs(q);
@@ -47,10 +51,11 @@ export default function SearchLeadsPage() {
           updatedAt: now
         });
       } else {
-        // Create new clinic
+        // Create new clinic with slug
         const clinicRef = doc(collection(db, 'clinics'));
         await setDoc(clinicRef, {
           ...clinic,
+          slug,
           createdAt: now,
           status: 'new'
         });
@@ -72,6 +77,9 @@ export default function SearchLeadsPage() {
         const clinic = results[i];
         setSaveProgress({ current: i + 1, total: results.length });
         
+        // Generate slug for new clinics
+        const slug = generateSlug(clinic.name || '', clinic.city);
+        
         // Check if clinic already exists
         const q = query(collection(db, 'clinics'), where('name', '==', clinic.name));
         const querySnapshot = await getDocs(q);
@@ -84,10 +92,11 @@ export default function SearchLeadsPage() {
             updatedAt: now
           });
         } else {
-          // Create new clinic
+          // Create new clinic with slug
           const clinicRef = doc(collection(db, 'clinics'));
           await setDoc(clinicRef, {
             ...clinic,
+            slug,
             createdAt: now,
             status: 'new'
           });
