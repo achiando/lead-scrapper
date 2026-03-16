@@ -36,26 +36,46 @@ export function generateBulkEmailContent(clinics: DentalClinic[], template: Mess
   };
 }
 
-export function openBulkEmail(clinics: DentalClinic[], template: MessageTemplate = defaultMessageTemplate) {
+export function openBulkEmail(
+  clinics: DentalClinic[],
+  template: MessageTemplate = defaultMessageTemplate
+) {
   const emailContent = generateBulkEmailContent(clinics, template);
-  
+
   if (!emailContent) {
     alert('None of the selected clinics have email addresses');
     return;
   }
 
+  const buildMailto = (to?: string, subject?: string, body?: string) => {
+    const safeTo = to ?? '';
+    const safeSubject = subject ?? '';
+    const safeBody = body ?? '';
+
+    return `mailto:${encodeURIComponent(safeTo)}?subject=${encodeURIComponent(
+      safeSubject
+    )}&body=${encodeURIComponent(safeBody)}`;
+  };
+
   if (emailContent.isSingle) {
-    // Open single email
     const { to, subject, body } = emailContent;
-    window.open(`mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+
+    window.open(buildMailto(to, subject, body), '_blank');
   } else {
-    // Open first email and show alert for remaining
     const firstEmail = emailContent.multipleEmails![0];
-    window.open(`mailto:${encodeURIComponent(firstEmail.to)}?subject=${encodeURIComponent(firstEmail.subject)}&body=${encodeURIComponent(firstEmail.body)}`, '_blank');
-    
+
+    window.open(
+      buildMailto(firstEmail.to, firstEmail.subject, firstEmail.body),
+      '_blank'
+    );
+
     if (emailContent.multipleEmails!.length > 1) {
       setTimeout(() => {
-        alert(`Email opened for ${firstEmail.clinicName}. You'll need to send emails for the remaining ${emailContent.multipleEmails!.length - 1} clinics individually.`);
+        alert(
+          `Email opened for ${firstEmail.clinicName}. You'll need to send emails for the remaining ${
+            emailContent.multipleEmails!.length - 1
+          } clinics individually.`
+        );
       }, 1000);
     }
   }
