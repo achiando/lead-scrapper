@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Layout, Database, Users, LogOut, ShieldCheck, BarChart3 } from 'lucide-react';
-import { auth } from '@/firebase';
-import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { Loader2 } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth } from '@/firebase';
+import { Search, BarChart3, Database, Upload, LogOut, Layout, Loader2, ShieldCheck } from 'lucide-react';
 
 const ADMIN_EMAIL = "achiandofrancline@gmail.com";
 
@@ -95,6 +94,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           <Link href="/admin/search" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === '/admin/search' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>
             <Search className="w-5 h-5" /> Search Leads
+          </Link>
+          <Link href="/admin/upload-leads" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === '/admin/upload-leads' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>
+            <Upload className="w-5 h-5" /> Upload Leads
           </Link>
           <Link href="/admin/analytics" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${pathname === '/admin/analytics' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>
             <BarChart3 className="w-5 h-5" /> Analytics

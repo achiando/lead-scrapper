@@ -16,7 +16,7 @@ export interface DentalClinic {
   searchTerm?: string;
   metaTitle?: string;
   metaDescription?: string;
-  source?: 'google_places' | 'gemini_ai';
+  source?: 'google_places' | 'gemini_ai' | 'manual';
   placeId?: string;
   lat?: number;
   lng?: number;
