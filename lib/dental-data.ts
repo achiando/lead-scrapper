@@ -15,6 +15,11 @@ export interface DentalClinic {
   searchTerm?: string;
   metaTitle?: string;
   metaDescription?: string;
+  source?: 'google_places' | 'gemini_ai';
+  placeId?: string;
+  lat?: number;
+  lng?: number;
+  updatedAt?: number;
 }
 
 export const DENTAL_STOCK_IMAGES = {

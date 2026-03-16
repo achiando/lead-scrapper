@@ -4,11 +4,20 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Layout, ShieldCheck, ChevronRight, Loader2 } from 'lucide-react';
 import { auth } from '@/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 export default function LandingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+
+  const handleAdminLogin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error('Error signing in:', error);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -48,7 +57,7 @@ export default function LandingPage() {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
           <button 
-            onClick={() => router.push('/admin')}
+            onClick={handleAdminLogin}
             className="bg-blue-600 text-white px-10 py-5 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 flex items-center justify-center gap-2 text-lg"
           >
             <ShieldCheck className="w-6 h-6" /> Admin Dashboard <ChevronRight className="w-5 h-5" />
