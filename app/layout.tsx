@@ -1,7 +1,8 @@
-import type {Metadata} from 'next';
+import type {Metadata, Viewport} from 'next';
 import './globals.css'; // Global styles
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://lead.tijwa.com'),
   title: {
     default: 'Dental Demo Pro - Professional Dental Websites',
     template: '%s | Dental Demo Pro'
@@ -52,13 +53,6 @@ export const metadata: Metadata = {
     },
   },
   
-  // Viewport and other meta
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
-  
   // Icons
   icons: {
     icon: '/favicon.ico',
@@ -69,6 +63,12 @@ export const metadata: Metadata = {
   // App
   applicationName: 'Dental Demo Pro',
   category: 'Healthcare',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
