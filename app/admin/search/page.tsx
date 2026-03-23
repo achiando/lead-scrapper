@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Loader2, Save, CheckCircle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { searchClinics } from '@/lib/hybrid-search';
 import { DentalClinic } from '@/lib/dental-data';
-import { db } from '@/firebase';
+import { db, auth } from '@/firebase';
 import { doc, setDoc, collection, query, where, getDocs, updateDoc, QueryFieldFilterConstraint } from 'firebase/firestore';
 import { generateSlug } from '@/lib/slug-generator';
 
@@ -17,6 +17,38 @@ export default function SearchLeadsPage() {
   const [saveProgress, setSaveProgress] = useState({ current: 0, total: 0 });
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage, setResultsPerPage] = useState(10);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const checkAuthentication = async () => {
+    console.log('=== Search Page Authentication Check ===');
+    console.log('Current user:', currentUser);
+    console.log('User email:', currentUser?.email);
+    
+    if (!currentUser) {
+      console.log('❌ No user found - not authenticated');
+      alert('Please sign in to save leads. Refresh the page and sign in with your admin account.');
+      return false;
+    }
+    
+    // Force token refresh to ensure we have a valid token
+    try {
+      console.log('🔄 Refreshing token...');
+      const token = await currentUser.getIdToken(true);
+      console.log('✅ Token refreshed successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ Token refresh failed:', error);
+      alert('Authentication expired. Please refresh the page and sign in again.');
+      return false;
+    }
+  };
 
   const totalPages = Math.ceil(results.length / resultsPerPage);
   const startIndex = (currentPage - 1) * resultsPerPage;
@@ -33,32 +65,74 @@ export default function SearchLeadsPage() {
   };
 
   const saveClinic = async (clinic: Partial<DentalClinic>) => {
+    console.log('\n=== Saving Individual Clinic ===');
+    console.log('Clinic name:', clinic.name);
+    
+    if (!(await checkAuthentication())) return;
+    
     setSaving(clinic.name || 'clinic');
     const now = new Date().valueOf();
     try {
+      console.log('🔄 Generating slug and checking for duplicates...');
       // Generate slug for new clinics
       const slug = generateSlug(clinic.name || '', clinic.city);
       
       // Check if clinic already exists
       const q = query(collection(db, 'clinics'), where('name', '==', clinic.name));
       const querySnapshot = await getDocs(q);
+      console.log('📋 Found existing clinics with same name:', querySnapshot.size);
       
       if (!querySnapshot.empty) {
-        // Update existing clinic
+        // Update existing clinic - filter out undefined values
         const existingDoc = querySnapshot.docs[0];
-        await updateDoc(doc(db, 'clinics', existingDoc.id), {
-          ...clinic,
-          updatedAt: now
-        });
+        const updateData: any = { updatedAt: now };
+        
+        // Only add fields that have values
+        if (clinic.name !== undefined) updateData.name = clinic.name;
+        if (clinic.category !== undefined) updateData.category = clinic.category;
+        if (clinic.rating !== undefined) updateData.rating = clinic.rating;
+        if (clinic.reviewsCount !== undefined) updateData.reviewsCount = clinic.reviewsCount;
+        if (clinic.phone !== undefined) updateData.phone = clinic.phone;
+        if (clinic.email !== undefined) updateData.email = clinic.email;
+        if (clinic.address !== undefined) updateData.address = clinic.address;
+        if (clinic.websiteUrl !== undefined) updateData.websiteUrl = clinic.websiteUrl;
+        if (clinic.city !== undefined) updateData.city = clinic.city;
+        if (clinic.source !== undefined) updateData.source = clinic.source;
+        if (clinic.searchTerm !== undefined) updateData.searchTerm = clinic.searchTerm;
+        if (clinic.metaTitle !== undefined) updateData.metaTitle = clinic.metaTitle;
+        if (clinic.metaDescription !== undefined) updateData.metaDescription = clinic.metaDescription;
+        if (clinic.placeId !== undefined) updateData.placeId = clinic.placeId;
+        if (clinic.lat !== undefined) updateData.lat = clinic.lat;
+        if (clinic.lng !== undefined) updateData.lng = clinic.lng;
+        
+        await updateDoc(doc(db, 'clinics', existingDoc.id), updateData);
       } else {
-        // Create new clinic with slug
-        const clinicRef = doc(collection(db, 'clinics'));
-        await setDoc(clinicRef, {
-          ...clinic,
+        // Create new clinic - filter out undefined values
+        const clinicData: any = {
           slug,
           createdAt: now,
           status: 'new'
-        });
+        };
+        
+        // Only add fields that have values
+        if (clinic.name !== undefined) clinicData.name = clinic.name;
+        if (clinic.category !== undefined) clinicData.category = clinic.category;
+        if (clinic.rating !== undefined) clinicData.rating = clinic.rating;
+        if (clinic.reviewsCount !== undefined) clinicData.reviewsCount = clinic.reviewsCount;
+        if (clinic.phone !== undefined) clinicData.phone = clinic.phone;
+        if (clinic.email !== undefined) clinicData.email = clinic.email;
+        if (clinic.address !== undefined) clinicData.address = clinic.address;
+        if (clinic.websiteUrl !== undefined) clinicData.websiteUrl = clinic.websiteUrl;
+        if (clinic.city !== undefined) clinicData.city = clinic.city;
+        if (clinic.source !== undefined) clinicData.source = clinic.source;
+        if (clinic.searchTerm !== undefined) clinicData.searchTerm = clinic.searchTerm;
+        if (clinic.metaTitle !== undefined) clinicData.metaTitle = clinic.metaTitle;
+        if (clinic.metaDescription !== undefined) clinicData.metaDescription = clinic.metaDescription;
+        if (clinic.placeId !== undefined) clinicData.placeId = clinic.placeId;
+        if (clinic.lat !== undefined) clinicData.lat = clinic.lat;
+        if (clinic.lng !== undefined) clinicData.lng = clinic.lng;
+        
+        await setDoc(doc(collection(db, 'clinics')), clinicData);
       }
       setSaving(null);
     } catch (error) {
@@ -68,6 +142,8 @@ export default function SearchLeadsPage() {
   };
 
   const saveAllClinics = async () => {
+    if (!(await checkAuthentication())) return;
+    
     setSavingAll(true);
     setSaveProgress({ current: 0, total: results.length });
     const now = new Date().valueOf();
@@ -77,6 +153,12 @@ export default function SearchLeadsPage() {
         const clinic = results[i];
         setSaveProgress({ current: i + 1, total: results.length });
         
+        // Re-check authentication before each save to prevent token expiry issues
+        if (!(await checkAuthentication())) {
+          console.error('Authentication failed during bulk save. Stopped at item', i + 1);
+          break;
+        }
+        
         // Generate slug for new clinics
         const slug = generateSlug(clinic.name || '', clinic.city);
         
@@ -85,21 +167,56 @@ export default function SearchLeadsPage() {
         const querySnapshot = await getDocs(q);
         
         if (!querySnapshot.empty) {
-          // Update existing clinic
+          // Update existing clinic - filter out undefined values
           const existingDoc = querySnapshot.docs[0];
-          await updateDoc(doc(db, 'clinics', existingDoc.id), {
-            ...clinic,
-            updatedAt: now
-          });
+          const updateData: any = { updatedAt: now };
+          
+          // Only add fields that have values
+          if (clinic.name !== undefined) updateData.name = clinic.name;
+          if (clinic.category !== undefined) updateData.category = clinic.category;
+          if (clinic.rating !== undefined) updateData.rating = clinic.rating;
+          if (clinic.reviewsCount !== undefined) updateData.reviewsCount = clinic.reviewsCount;
+          if (clinic.phone !== undefined) updateData.phone = clinic.phone;
+          if (clinic.email !== undefined) updateData.email = clinic.email;
+          if (clinic.address !== undefined) updateData.address = clinic.address;
+          if (clinic.websiteUrl !== undefined) updateData.websiteUrl = clinic.websiteUrl;
+          if (clinic.city !== undefined) updateData.city = clinic.city;
+          if (clinic.source !== undefined) updateData.source = clinic.source;
+          if (clinic.searchTerm !== undefined) updateData.searchTerm = clinic.searchTerm;
+          if (clinic.metaTitle !== undefined) updateData.metaTitle = clinic.metaTitle;
+          if (clinic.metaDescription !== undefined) updateData.metaDescription = clinic.metaDescription;
+          if (clinic.placeId !== undefined) updateData.placeId = clinic.placeId;
+          if (clinic.lat !== undefined) updateData.lat = clinic.lat;
+          if (clinic.lng !== undefined) updateData.lng = clinic.lng;
+          
+          await updateDoc(doc(db, 'clinics', existingDoc.id), updateData);
         } else {
-          // Create new clinic with slug
-          const clinicRef = doc(collection(db, 'clinics'));
-          await setDoc(clinicRef, {
-            ...clinic,
+          // Create new clinic - filter out undefined values
+          const clinicData: any = {
             slug,
             createdAt: now,
             status: 'new'
-          });
+          };
+          
+          // Only add fields that have values
+          if (clinic.name !== undefined) clinicData.name = clinic.name;
+          if (clinic.category !== undefined) clinicData.category = clinic.category;
+          if (clinic.rating !== undefined) clinicData.rating = clinic.rating;
+          if (clinic.reviewsCount !== undefined) clinicData.reviewsCount = clinic.reviewsCount;
+          if (clinic.phone !== undefined) clinicData.phone = clinic.phone;
+          if (clinic.email !== undefined) clinicData.email = clinic.email;
+          if (clinic.address !== undefined) clinicData.address = clinic.address;
+          if (clinic.websiteUrl !== undefined) clinicData.websiteUrl = clinic.websiteUrl;
+          if (clinic.city !== undefined) clinicData.city = clinic.city;
+          if (clinic.source !== undefined) clinicData.source = clinic.source;
+          if (clinic.searchTerm !== undefined) clinicData.searchTerm = clinic.searchTerm;
+          if (clinic.metaTitle !== undefined) clinicData.metaTitle = clinic.metaTitle;
+          if (clinic.metaDescription !== undefined) clinicData.metaDescription = clinic.metaDescription;
+          if (clinic.placeId !== undefined) clinicData.placeId = clinic.placeId;
+          if (clinic.lat !== undefined) clinicData.lat = clinic.lat;
+          if (clinic.lng !== undefined) clinicData.lng = clinic.lng;
+          
+          await setDoc(doc(collection(db, 'clinics')), clinicData);
         }
         
         // Small delay to prevent overwhelming Firestore

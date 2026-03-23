@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/firebase';
+import { db, auth } from '@/firebase';
 import { DentalClinic } from '@/lib/dental-data';
 import { generateSlug } from '@/lib/slug-generator';
 import { Upload, Plus, FileText, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
@@ -48,8 +48,52 @@ export default function UploadLeadsPage() {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const checkAuthentication = async () => {
+    console.log('=== Authentication Check ===');
+    console.log('Current user:', currentUser);
+    console.log('User email:', currentUser?.email);
+    console.log('User UID:', currentUser?.uid);
+    
+    if (!currentUser) {
+      console.log('❌ No user found - not authenticated');
+      setUploadStatus({
+        type: 'error',
+        message: 'Please sign in to upload leads. Refresh the page and sign in with your admin account.'
+      });
+      return false;
+    }
+    
+    // Force token refresh to ensure we have a valid token
+    try {
+      console.log('🔄 Refreshing token...');
+      const token = await currentUser.getIdToken(true);
+      console.log('✅ Token refreshed successfully');
+      console.log('Token length:', token.length);
+      console.log('Token starts with:', token.substring(0, 20) + '...');
+      return true;
+    } catch (error) {
+      console.error('❌ Token refresh failed:', error);
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+      setUploadStatus({
+        type: 'error',
+        message: `Authentication expired: ${error instanceof Error ? error.message : 'Unknown error'}. Please refresh the page and sign in again.`
+      });
+      return false;
+    }
+  };
 
   const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!(await checkAuthentication())) return;
+    
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -64,6 +108,9 @@ export default function UploadLeadsPage() {
       }
 
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      console.log('📋 CSV Headers found:', headers);
+      console.log('📊 Total rows to process:', lines.length - 1);
+      
       const results = {
         total: lines.length - 1,
         successful: 0,
@@ -73,27 +120,39 @@ export default function UploadLeadsPage() {
 
       // Process each row
       for (let i = 1; i < lines.length; i++) {
+        console.log(`\n--- Processing Row ${i + 1}/${lines.length} ---`);
+        
         try {
+          // Re-check authentication before each row to prevent token expiry issues
+          if (!(await checkAuthentication())) {
+            results.failed += (lines.length - i);
+            results.errors.push(`Authentication failed during upload. Stopped at row ${i + 1}.`);
+            break;
+          }
+          
           const values = lines[i].split(',').map(v => v.trim());
           const rowData: any = {};
+          
+          console.log(`📝 Row ${i + 1} raw values:`, values);
           
           headers.forEach((header, index) => {
             rowData[header] = values[index] || '';
           });
+          
+          console.log('🔄 Processed row data:', rowData);
+          console.log('🏷️ Available headers vs data mapping:');
+          headers.forEach((header, index) => {
+            console.log(`  ${header} -> "${values[index] || 'EMPTY'}"`);
+          });
 
           // Generate slug
           const slug = generateSlug(rowData.name || '', rowData.city);
+          console.log('Generated slug:', slug);
           
-          // Prepare clinic data
-          const clinicData: Partial<DentalClinic> = {
+          // Prepare clinic data - filter out undefined values
+          const clinicData: any = {
             name: rowData.name || '',
             category: rowData.category || 'General Dentistry',
-            rating: rowData.rating ? parseFloat(rowData.rating) : undefined,
-            reviewsCount: rowData.reviewscount ? parseInt(rowData.reviewscount) : undefined,
-            phone: rowData.phone || undefined,
-            email: rowData.email || undefined,
-            address: rowData.address || undefined,
-            websiteUrl: rowData.websiteurl || undefined,
             city: rowData.city || '',
             source: rowData.source || 'manual',
             searchTerm: rowData.searchterm || '',
@@ -103,14 +162,92 @@ export default function UploadLeadsPage() {
             createdAt: Date.now(),
             status: 'new'
           };
+          
+          console.log('🔧 Raw CSV field mappings:');
+          console.log('  name field:', rowData.name);
+          console.log('  city field:', rowData.city);
+          console.log('  source field:', rowData.source);
+          console.log('  searchterm field:', rowData.searchterm);
+          console.log('  websiteurl field:', rowData.websiteurl);
+          console.log('  address field:', rowData.address);
+          
+          // Fix common CSV parsing issues
+          // Remove extra quotes from fields
+          Object.keys(rowData).forEach(key => {
+            if (typeof rowData[key] === 'string') {
+              rowData[key] = rowData[key].replace(/^"|"$/g, ''); // Remove surrounding quotes
+            }
+          });
+          
+          // Fix field mapping issues - if city is empty but source has city value, swap them
+          if (!rowData.city && rowData.source && rowData.source !== 'manual' && rowData.source !== 'google_places' && rowData.source !== 'gemini_ai') {
+            console.log('🔧 Fixing field mapping: moving city from source to city field');
+            rowData.city = rowData.source;
+            rowData.source = 'manual';
+          }
+          
+          // Ensure city is not empty for Firestore rules
+          if (!rowData.city) {
+            console.log('⚠️ City is empty, setting default');
+            rowData.city = 'Unknown';
+          }
+          
+          console.log('🔧 Fixed CSV field mappings:');
+          console.log('  name:', rowData.name);
+          console.log('  city:', rowData.city);
+          console.log('  source:', rowData.source);
+          console.log('  websiteUrl:', rowData.websiteurl);
+          console.log('  address:', rowData.address);
+          
+          // Only add fields that have values (using fixed data)
+          if (rowData.rating) clinicData.rating = parseFloat(rowData.rating);
+          if (rowData.reviewscount) clinicData.reviewsCount = parseInt(rowData.reviewscount);
+          if (rowData.phone) clinicData.phone = rowData.phone;
+          if (rowData.email) clinicData.email = rowData.email;
+          if (rowData.address) clinicData.address = rowData.address;
+          
+          // Handle websiteUrl - only add if it's a valid URL or empty
+          if (rowData.websiteurl) {
+            // Check if it's a valid URL (starts with http:// or https://)
+            if (rowData.websiteurl.startsWith('http://') || rowData.websiteurl.startsWith('https://')) {
+              clinicData.websiteUrl = rowData.websiteurl;
+            } else {
+              // Not a valid URL, don't include the field or set to empty string
+              console.log('⚠️ websiteUrl is not a valid URL, excluding from save');
+              clinicData.websiteUrl = ''; // Empty string to satisfy Firestore rules
+            }
+          } else {
+            clinicData.websiteUrl = ''; // Empty string for missing URLs
+          }
+          
+          // Update clinicData with fixed values
+          clinicData.city = rowData.city;
+          clinicData.source = rowData.source;
 
+          console.log('📤 Attempting to save to Firestore...');
+          console.log('Clinic data being saved:', clinicData);
+          
           // Save to Firestore
-          await addDoc(collection(db, 'clinics'), clinicData);
+          const docRef = await addDoc(collection(db, 'clinics'), clinicData);
+          console.log('✅ Successfully saved document:', docRef.id);
           results.successful++;
           
         } catch (error) {
+          console.error(`❌ Error processing row ${i + 1}:`, error);
+          console.error('Error type:', error instanceof Error ? error.constructor.name : 'Unknown');
+          console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+          
           results.failed++;
-          results.errors.push(`Row ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          results.errors.push(`Row ${i + 1}: ${errorMessage}`);
+          
+          // If it's a permission error, stop processing
+          if (errorMessage.includes('permission') || errorMessage.includes('auth')) {
+            console.log('🛑 Permission error detected, stopping upload');
+            results.failed += (lines.length - i - 1);
+            results.errors.push(`Stopped upload due to permission errors at row ${i + 1}.`);
+            break;
+          }
         }
       }
 
@@ -130,29 +267,34 @@ export default function UploadLeadsPage() {
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!(await checkAuthentication())) return;
+    
     setUploadStatus({ type: 'uploading', message: 'Saving lead...' });
 
     try {
       const slug = generateSlug(manualForm.name, manualForm.city);
       
-      const clinicData: Partial<DentalClinic> = {
+      const clinicData: any = {
         name: manualForm.name,
         category: manualForm.category,
-        rating: manualForm.rating ? parseFloat(manualForm.rating) : undefined,
-        reviewsCount: manualForm.reviewsCount ? parseInt(manualForm.reviewsCount) : undefined,
-        phone: manualForm.phone || undefined,
-        email: manualForm.email || undefined,
-        address: manualForm.address || undefined,
-        websiteUrl: manualForm.websiteUrl || undefined,
         city: manualForm.city,
         source: manualForm.source,
-        searchTerm: manualForm.searchTerm || undefined,
-        metaTitle: manualForm.metaTitle || undefined,
-        metaDescription: manualForm.metaDescription || undefined,
         slug,
         createdAt: Date.now(),
         status: 'new'
       };
+      
+      // Only add fields that have values
+      if (manualForm.rating) clinicData.rating = parseFloat(manualForm.rating);
+      if (manualForm.reviewsCount) clinicData.reviewsCount = parseInt(manualForm.reviewsCount);
+      if (manualForm.phone) clinicData.phone = manualForm.phone;
+      if (manualForm.email) clinicData.email = manualForm.email;
+      if (manualForm.address) clinicData.address = manualForm.address;
+      if (manualForm.websiteUrl) clinicData.websiteUrl = manualForm.websiteUrl;
+      if (manualForm.searchTerm) clinicData.searchTerm = manualForm.searchTerm;
+      if (manualForm.metaTitle) clinicData.metaTitle = manualForm.metaTitle;
+      if (manualForm.metaDescription) clinicData.metaDescription = manualForm.metaDescription;
 
       await addDoc(collection(db, 'clinics'), clinicData);
       

@@ -118,6 +118,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
+        <nav className="flex justify-around py-2">
+          <Link 
+            href="/admin/search" 
+            className={`flex flex-col items-center p-2 rounded-lg transition-all ${pathname === '/admin/search' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            <Search className="w-5 h-5" />
+            <span className="text-xs mt-1">Search</span>
+          </Link>
+          <Link 
+            href="/admin/upload-leads" 
+            className={`flex flex-col items-center p-2 rounded-lg transition-all ${pathname === '/admin/upload-leads' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            <Upload className="w-5 h-5" />
+            <span className="text-xs mt-1">Upload</span>
+          </Link>
+          <Link 
+            href="/admin/manage" 
+            className={`flex flex-col items-center p-2 rounded-lg transition-all ${pathname === '/admin/manage' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            <Database className="w-5 h-5" />
+            <span className="text-xs mt-1">Manage</span>
+          </Link>
+          <button 
+            onClick={handleLogout}
+            className="flex flex-col items-center p-2 rounded-lg text-slate-500 hover:text-red-600 transition-all"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-xs mt-1">Logout</span>
+          </button>
+        </nav>
+      </div>
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="md:hidden bg-white border-b border-slate-200 px-4 py-4 flex justify-between items-center sticky top-0 z-40">
           <div className="flex items-center gap-2">
@@ -137,7 +171,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-20 md:pb-8">
           {children}
         </main>
       </div>
