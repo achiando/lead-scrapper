@@ -12,14 +12,16 @@ export interface MessageTemplate {
 }
 
 export const defaultMessageTemplate: MessageTemplate = {
-  whatsapp: `Hi {clinicName},
+  whatsapp: `Hi, is this {clinicName}?
 
-This is Tijwa Limited. We found your clinic while searching online and created a quick demo website showing how it could appear.
-
-Preview:
+I noticed your online presence could be bringing in more patient bookings, so I put together a quick sample redesign for you:
 {previewLink}
 
-Would love your feedback.`,
+It takes 2 minutes to view.
+
+If it looks useful, I can show you exactly how to turn it into more bookings in a short 10 min call.
+
+Interested?`,
   
   sms: `Hi {clinicName}, this is Tijwa Limited. While searching online for dental clinics we found your practice and created a quick website demo for you: {previewLink}`,
   
