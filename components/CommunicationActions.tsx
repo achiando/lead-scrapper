@@ -22,17 +22,32 @@ export default function CommunicationActions({ clinic }: CommunicationActionsPro
       const encodedMessage = encodeURIComponent(message);
       console.log('Encoded message:', encodedMessage);
       
-      // Try multiple approaches
-      const approaches = [
-        // Approach 1: WhatsApp Web without phone (opens with message ready)
-        `https://web.whatsapp.com/send?text=${encodedMessage}`,
-        // Approach 2: wa.me without phone (should work for most cases)
-        `https://wa.me/?text=${encodedMessage}`,
-        // Approach 3: wa.me with a placeholder phone (user needs to select contact)
-        `https://wa.me/1234567890?text=${encodedMessage}`
-      ];
+      // Try multiple approaches including WhatsApp Business
+      const approaches: string[] = [];
+      
+      // Approach 1: WhatsApp Business (if installed)
+      approaches.push(`whatsapp://send?text=${encodedMessage}`);
+      
+      // Approach 2: WhatsApp Business with phone (if available)
+      if (clinic.phone) {
+        const cleanPhone = clinic.phone.replace(/[^0-9+]/g, '');
+        approaches.push(`whatsapp://send?phone=${cleanPhone}&text=${encodedMessage}`);
+      }
+      
+      // Approach 3: Regular WhatsApp mobile
+      approaches.push(`https://wa.me/?text=${encodedMessage}`);
+      
+      // Approach 4: WhatsApp Web
+      approaches.push(`https://web.whatsapp.com/send?text=${encodedMessage}`);
+      
+      // Approach 5: WhatsApp with phone
+      if (clinic.phone) {
+        const cleanPhone = clinic.phone.replace(/[^0-9+]/g, '');
+        approaches.push(`https://wa.me/${cleanPhone}?text=${encodedMessage}`);
+      }
       
       console.log('Trying WhatsApp approaches:', approaches);
+      console.log('Clinic phone:', clinic.phone);
       
       // Try first approach
       window.open(approaches[0], '_blank');
