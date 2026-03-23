@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MessageSquare, Phone, Mail, Edit2, Save, X } from 'lucide-react';
+import { MessageSquare, Phone, Mail, Edit2, Save, X, Copy } from 'lucide-react';
 import { ClinicWithActions, MessageTemplate, defaultMessageTemplate, formatMessageSync, formatEmailMessageSync } from '@/lib/message-templates';
 
 interface CommunicationActionsProps {
@@ -13,6 +13,7 @@ export default function CommunicationActions({ clinic }: CommunicationActionsPro
   const [editingTemplate, setEditingTemplate] = useState<'whatsapp' | 'sms' | 'email' | null>(null);
   const [templates, setTemplates] = useState<MessageTemplate>(defaultMessageTemplate);
   const [tempTemplate, setTempTemplate] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const handleWhatsApp = () => {
     try {
@@ -38,8 +39,40 @@ export default function CommunicationActions({ clinic }: CommunicationActionsPro
       
     } catch (error) {
       console.error('Error opening WhatsApp:', error);
-      alert('Could not open WhatsApp. Please copy the message manually:\n\n' + formatMessageSync(templates.whatsapp, clinic));
+      alert('Could not open WhatsApp. Please copy the message manually.');
     }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      alert('Failed to copy message. Please select and copy manually.');
+    }
+  };
+
+  const copyWhatsAppMessage = () => {
+    const message = formatMessageSync(templates.whatsapp, clinic);
+    copyToClipboard(message);
   };
 
   const handleSMS = () => {
@@ -98,6 +131,18 @@ export default function CommunicationActions({ clinic }: CommunicationActionsPro
           title="Send WhatsApp"
         >
           <MessageSquare className="w-4 h-4" />
+        </button>
+        <button
+          onClick={copyWhatsAppMessage}
+          className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors relative"
+          title="Copy WhatsApp message"
+        >
+          <Copy className="w-4 h-4" />
+          {copied && (
+            <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1 py-0.5 rounded">
+              ✓
+            </span>
+          )}
         </button>
         <button
           onClick={handleSMS}
