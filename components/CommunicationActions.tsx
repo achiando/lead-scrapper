@@ -15,9 +15,31 @@ export default function CommunicationActions({ clinic }: CommunicationActionsPro
   const [tempTemplate, setTempTemplate] = useState('');
 
   const handleWhatsApp = () => {
-    const message = formatMessageSync(templates.whatsapp, clinic);
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+    try {
+      const message = formatMessageSync(templates.whatsapp, clinic);
+      console.log('WhatsApp message:', message);
+      const encodedMessage = encodeURIComponent(message);
+      console.log('Encoded message:', encodedMessage);
+      
+      // Try multiple approaches
+      const approaches = [
+        // Approach 1: WhatsApp Web without phone (opens with message ready)
+        `https://web.whatsapp.com/send?text=${encodedMessage}`,
+        // Approach 2: wa.me without phone (should work for most cases)
+        `https://wa.me/?text=${encodedMessage}`,
+        // Approach 3: wa.me with a placeholder phone (user needs to select contact)
+        `https://wa.me/1234567890?text=${encodedMessage}`
+      ];
+      
+      console.log('Trying WhatsApp approaches:', approaches);
+      
+      // Try first approach
+      window.open(approaches[0], '_blank');
+      
+    } catch (error) {
+      console.error('Error opening WhatsApp:', error);
+      alert('Could not open WhatsApp. Please copy the message manually:\n\n' + formatMessageSync(templates.whatsapp, clinic));
+    }
   };
 
   const handleSMS = () => {
