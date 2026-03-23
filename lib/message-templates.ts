@@ -14,29 +14,35 @@ export interface MessageTemplate {
 export const defaultMessageTemplate: MessageTemplate = {
   whatsapp: `Hi, is this {clinicName}?
 
-I noticed your online presence could be bringing in more patient bookings, so I put together a quick sample redesign for you:
+I came across your clinic and noticed a few quick changes that could help bring in more patient bookings.
+
+So I created a short preview showing exactly what I mean:
 {previewLink}
 
-It takes 2 minutes to view.
+It takes about 2 minutes to check.
 
-If it looks useful, I can show you exactly how to turn it into more bookings in a short 10 min call.
+If it makes sense, I can walk you through how to turn this into more bookings — takes 10 mins max.
 
-Interested?`,
+Are you available later today or tomorrow?`,
   
-  sms: `Hi {clinicName}, this is Tijwa Limited. While searching online for dental clinics we found your practice and created a quick website demo for you: {previewLink}`,
+  sms: `Hi {clinicName}, I came across your clinic and noticed a few quick changes that could help bring in more patient bookings. I created a short preview: {previewLink} Takes 2 mins to check. If it makes sense, I can show you how to turn this into more bookings in 10 mins. Are you available later today or tomorrow?`,
   
   email: {
-    subject: 'Free Website Demo for {clinicName}',
+    subject: 'Quick preview for {clinicName}',
     body: `Hi {clinicName} Team,
 
-This is Tijwa Limited. We found your clinic while searching online and created a quick demo website showing how it could appear.
+I came across your clinic and noticed a few quick changes that could help bring in more patient bookings.
 
-Preview: {previewLink}
+So I created a short preview showing exactly what I mean:
+{previewLink}
 
-Would love your feedback.
+It takes about 2 minutes to check.
 
-Best regards,
-Tijwa Limited Team`
+If it makes sense, I can walk you through how to turn this into more bookings — takes 10 mins max.
+
+Are you available later today or tomorrow?
+
+Best regards`
   }
 };
 
